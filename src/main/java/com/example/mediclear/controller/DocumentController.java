@@ -4,13 +4,16 @@ import com.example.mediclear.dto.ExtractionResult;
 import com.example.mediclear.model.Document;
 import com.example.mediclear.repository.DocumentRepository;
 import com.example.mediclear.service.PDFExtractionService;
+import com.example.mediclear.validator.FileValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,32 +23,25 @@ import java.util.List;
 @RequestMapping("/api/documents")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @Tag(name = "Document Controller", description = "Healthcare PDF Processing API")
 public class DocumentController {
 
     private final PDFExtractionService pdfExtractionService;
     private final DocumentRepository documentRepository;
+    private final FileValidator fileValidator;
 
-    @PostMapping(value = "/extract", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(
+        value = "/extract",
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     @Operation(summary = "Extract text from PDF", description = "Upload a PDF file to extract its content and metadata")
     public ResponseEntity<ExtractionResult> extractPDF(
-            @Parameter(description = "PDF file to be processed")
-            @RequestPart("file") MultipartFile file) {
-        log.info("Incoming request to extract text from file: {}", file.getOriginalFilename());
+            @Valid @RequestPart("file") MultipartFile file) {
         
-        if (file.isEmpty()) {
-            log.warn("Empty file received");
-            return ResponseEntity.badRequest().build();
-        }
-
-        if (!"application/pdf".equals(file.getContentType())) {
-            log.warn("Invalid file type received: {}", file.getContentType());
-            return ResponseEntity.badRequest().build();
-        }
-
+        fileValidator.validate(file);
+        log.info("Extracting: {}", file.getOriginalFilename());
         ExtractionResult result = pdfExtractionService.extractText(file);
-        
-        log.info("Response sent with status: 200 for file: {}", file.getOriginalFilename());
         return ResponseEntity.ok(result);
     }
 

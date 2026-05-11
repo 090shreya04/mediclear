@@ -5,6 +5,7 @@ import com.example.mediclear.exception.PDFProcessingException;
 import com.example.mediclear.model.Document;
 import com.example.mediclear.repository.DocumentRepository;
 import com.example.mediclear.service.PDFExtractionService;
+import com.example.mediclear.validator.FileValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
@@ -28,14 +29,12 @@ public class PDFExtractionServiceImpl implements PDFExtractionService {
     @Value("${app.upload.dir}")
     private String uploadDir;
     
+    private final FileValidator fileValidator;
     private final DocumentRepository documentRepository;
-
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    private static final String PDF_CONTENT_TYPE = "application/pdf";
 
     @Override
     public ExtractionResult extractText(MultipartFile file) {
-        validateFile(file);
+        fileValidator.validate(file);
         
         log.info("Starting text extraction for file: {}", file.getOriginalFilename());
 
@@ -114,19 +113,4 @@ public class PDFExtractionServiceImpl implements PDFExtractionService {
         }
     }
     
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new PDFProcessingException("File is empty or null");
-        }
-
-        if (!Objects.equals(file.getContentType(), PDF_CONTENT_TYPE)) {
-            log.warn("Invalid file type: {}", file.getContentType());
-            throw new PDFProcessingException("Only PDF files are supported");
-        }
-
-        if (file.getSize() > MAX_FILE_SIZE) {
-            log.warn("File size exceeds limit: {} bytes", file.getSize());
-            throw new PDFProcessingException("File size exceeds the maximum limit of 10MB");
-        }
-    }
 }

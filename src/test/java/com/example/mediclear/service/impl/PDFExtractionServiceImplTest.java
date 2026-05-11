@@ -4,6 +4,7 @@ import com.example.mediclear.dto.ExtractionResult;
 import com.example.mediclear.exception.PDFProcessingException;
 import com.example.mediclear.model.Document;
 import com.example.mediclear.repository.DocumentRepository;
+import com.example.mediclear.validator.FileValidator;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -31,6 +32,9 @@ class PDFExtractionServiceImplTest {
 
     @Mock
     private DocumentRepository documentRepository;
+
+    @Mock
+    private FileValidator fileValidator;
 
     @InjectMocks
     private PDFExtractionServiceImpl pdfExtractionService;
@@ -93,6 +97,9 @@ class PDFExtractionServiceImplTest {
                 "some text".getBytes()
         );
 
+        doThrow(new PDFProcessingException("Invalid file type"))
+                .when(fileValidator).validate(file);
+
         assertThrows(PDFProcessingException.class, () -> pdfExtractionService.extractText(file));
     }
 
@@ -106,6 +113,9 @@ class PDFExtractionServiceImplTest {
                 largeBytes
         );
 
+        doThrow(new PDFProcessingException("File size exceeds limit"))
+                .when(fileValidator).validate(file);
+
         assertThrows(PDFProcessingException.class, () -> pdfExtractionService.extractText(file));
     }
 
@@ -117,6 +127,9 @@ class PDFExtractionServiceImplTest {
                 "application/pdf",
                 new byte[0]
         );
+
+        doThrow(new PDFProcessingException("File is empty"))
+                .when(fileValidator).validate(file);
 
         assertThrows(PDFProcessingException.class, () -> pdfExtractionService.extractText(file));
     }
